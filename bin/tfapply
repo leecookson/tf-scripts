@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# source tfcommon from same bin folder
+. "`dirname $(realpath $0)`/tfcommon"
+
+folder=${1:-.}
+
+echo "checking $folder"
+
+is_tf_folder $folder || exit 1
+
+cd $folder
+
+getcreds
+
+terraform plan -out plan.tfplan
+
+terraform apply "plan.tfplan"

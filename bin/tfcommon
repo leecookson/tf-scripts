@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+## INIT for all uses
+
+# check existence of terraform binary
+terraform=$(which terraform)
+if [ -z "$terraform" ]
+then
+  echo "terraform not found in PATH"
+  exit 1
+fi
+
+# use local folder for backend, override ~/.tfbackend with env BACKEND_PATH
+backend_path=${BACKEND_PATH:-~/.tfbackend}
+if [ ! -d "$backend_path" ]
+then
+  mkdir -p "$backend_path"
+fi
+
+export TF_CLI_ARGS_init="-compact-warnings"
+
+## Functions
+is_tf_folder() {
+  local folder="$1"
+
+  if [[ ! -d "$folder" ]]; then
+    echo "Error: '$folder' is not a valid directory."
+    return 1
+  fi
+
+  status=1
+  find "$folder" -maxdepth 1 -type f -name "*.tf" -print -quit 2>/dev/null | grep . > /dev/null
+  
+  if [[ $? -eq 0 ]]; then
+    return 0
+  else
+    echo "No files with extension 'tf' found in '$folder'."
+    return 1
+  fi
+}
+
+setupbackend () {
+  project=$(basename $PWD)
+  state_folder="${backend_path}/${project}"
+  mkdir -p ${state_folder}
+
+  echo "-backend-config=\"path=${state_folder}\""
+}
+
+
+getawscreds () {
+  grep aws provider.tf 2>/dev/null > /dev/null
+  if [[ ! $? -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "Detected AWS template"
+  export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
+  export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
+}
+
+getazurecreds () {
+  grep azure provider.tf 2>/dev/null > /dev/null
+  if [[ ! $? -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "Detected Azure template"
+
+  authjson=$(az account list 2>/dev/null)
+  export ARM_SUBSCRIPTION_ID=$(echo "$authjson" | jq -r .[0].id)
+  export ARM_TENANT_ID=$(echo "$authjson" | jq -r .[0].tenantId)
+
+  echo "Tenant ID $ARM_TENANT_ID"
+  echo "Subscription ID $ARM_SUBSCRIPTION_ID"
+}
+
+getcreds () {
+  getawscreds
+  getazurecreds
+}

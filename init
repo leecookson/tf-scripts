@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+common_bin_folders="/usr/local/bin $HOME/bin"
+default_bin="$HOME/bin"
+local_bin="`dirname $(realpath $0)`/bin"
+
+echo "Will try to install in $common_bin_folders"
+echo "$HOME/.bin will be created if previous paths aren't writable, and it doesn't exist"
+
+for folder in $common_bin_folders
+do  
+
+  if [ "${folder}" == "${default_bin}" ]
+  then
+    mkdir -p ${default_bin}
+  fi
+
+  if [ -d $folder ]
+  then
+    if [ ! -w $folder ]
+    then
+      #echo "folder $folder is not writable by current user"
+      continue
+    fi
+
+    echo "installing in $folder"
+    for b in "$local_bin"/*
+    do
+      cmdname=`basename $b`
+      if [ ! -f $folder/$cmdname ]
+      then
+        echo "linking $b to $folder"
+        ln -s ${b} ${folder}
+      else
+        echo "link from $b to $folder already exists"
+      fi
+      
+    done
+  
+    exit 0
+  fi
+done
+

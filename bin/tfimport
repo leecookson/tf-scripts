@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# source tfcommon from same bin folder
+. "`dirname $(realpath $0)`/tfcommon"
+
+folder=${1:-.}
+
+echo "checking $folder"
+
+is_tf_folder $folder || exit 1
+
+cd $folder
+backend_params=$(setupbackend)
+
+resource_path=${2}
+resource_id=${3}
+
+if [[ -z "$resource_path" ]] || [[ -z "$resource_id" ]]; then
+  echo "import requires a resource path and id"
+  exit 1
+fi
+
+getcreds
+terraform init $backend_params
+
+terraform import ${resource_path} ${resource_id}
