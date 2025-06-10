@@ -1,7 +1,7 @@
 Terraform Common Scripts
 ===
 
-Create `terrform` AWS IAM deploy user
+Create `terraform` AWS IAM deploy user
 ---
 Create inline role using: docs/terraform_iam_role.json
 
