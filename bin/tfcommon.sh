@@ -39,17 +39,12 @@ is_tf_folder() {
   fi
 }
 
-# setupbackend <project_root>
-#     current directory will be folder for this action
 setupbackend () {
-  project_root=$1
-  project=$(basename $project_root)
-  folder=$(basename $PWD)
-  state_folder="${backend_path}/${project}/${folder}"
-  echo "state_folder $state_folder"
+  project=$(basename $PWD)
+  state_folder="${backend_path}/${project}"
   mkdir -p ${state_folder}
 
-  cat <<EOF > work/backend.tf
+  cat <<EOF > backend.tf
 terraform {
   backend "local" { 
     path = "${state_folder}/terraform.tfstate"
@@ -59,20 +54,10 @@ EOF
   echo "Backend Set Up: ${state_folder}/terraform.tfstate"
 }
 
-# setupworkfolder $folder
-#     currend directory has to be main project root
 setupworkfolder () {
-  local folder="$1"
-
-  echo "Setting up $folder"
-  if [[ ! -d "$folder/work" ]]; then
-    echo "Creating work folder for $folder"
-    mkdir -p "$folder/work"
+  if [[ ! -d work ]]; then
+    mkdir -p work
   fi
-  project_root=$(basename $PWD)
-
-  cd "$folder"
-  setupbackend "$project_root"
 
   # Find directories directly under the current path (.), at depth 1.
   # -type d: only directories.
@@ -83,7 +68,7 @@ setupworkfolder () {
   local found_folders
   found_folders=$(find . -maxdepth 1 -type d ! -name '*.*' ! -name 'work' -print 2>/dev/null)
 
-  [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
+  echo "Folders to symlink into 'work': $found_folders"
   # symlink any non-dot folders to work, mainly for static or auxilliary files
   for folder_path in $found_folders # folder_path will be like ./src, ./data
   do

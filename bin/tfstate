@@ -7,21 +7,23 @@ folder=${1:-.}
 state_cmd=${2:-show}
 resource_address=${3}
 
-if [[ -z "$state_cmd" ]] || [[ -z "$resource_address" ]]; then
+echo "$folder $state_cmd $resource_address"
+
+usage () {
   echo "usage: $0 <folder> <state_cmd> <resource_address>"
   exit 1
-fi
+}
+[[ -z "$state_cmd" ]] && usage
+
+[[ "$state_cmd" != "list" ]] && [[ -z "$resource_address" ]] && usage
 
 echo "checking $folder"
 
 is_tf_folder $folder || exit 1
 
-cd $folder
-backend_params=$(setupbackend)
+setupworkfolder $folder
 
-echo $backend_params
-
-terraform init $backend_params
+terraform init
 
 set -x
 terraform state $state_cmd $resource_address

@@ -7,9 +7,11 @@ folder=${1:-.}
 
 echo "checking $folder"
 
+project_root=$PWD
+
 is_tf_folder $folder || exit 1
 
-cd $folder
+setupworkfolder $folder
 
 getcreds
 
