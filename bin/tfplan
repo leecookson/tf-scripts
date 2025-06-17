@@ -15,7 +15,6 @@ setupworkfolder $folder
 
 getcreds
 
-set +x
 terraform init -migrate-state -upgrade
 
 terraform plan -out plan.tfplan

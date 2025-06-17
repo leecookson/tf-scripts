@@ -6,6 +6,7 @@
 folder=${1:-.}
 state_cmd=${2:-show}
 resource_address=${3}
+resource_target_address=${4} # to support "mv" command
 
 echo "$folder $state_cmd $resource_address"
 
@@ -17,6 +18,8 @@ usage () {
 
 [[ "$state_cmd" != "list" ]] && [[ -z "$resource_address" ]] && usage
 
+[[ "$state_cmd" == "mv" ]] && [[ -z "$resource_target_address" ]] && usage
+
 echo "checking $folder"
 
 is_tf_folder $folder || exit 1
@@ -25,5 +28,5 @@ setupworkfolder $folder
 
 terraform init
 
-set -x
-terraform state $state_cmd $resource_address
+terraform state $state_cmd $resource_address $resource_target_address
+
