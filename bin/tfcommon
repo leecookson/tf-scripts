@@ -72,6 +72,9 @@ setupworkfolder () {
   project_root=$(basename $PWD)
 
   cd "$folder"
+  
+  rm -f work/*.tf work/*.tfvars # remove in case files are removed from repo
+
   setupbackend "$project_root"
 
   # Find directories directly under the current path (.), at depth 1.
