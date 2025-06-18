@@ -45,18 +45,40 @@ setupbackend () {
   project_root=$1
   project=$(basename $project_root)
   folder=$(basename $PWD)
-  state_folder="${backend_path}/${project}/${folder}"
-  echo "state_folder $state_folder"
-  mkdir -p ${state_folder}
 
-  cat <<EOF > work/backend.tf
-terraform {
-  backend "local" { 
-    path = "${state_folder}/terraform.tfstate"
+  echo "CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID}"
+
+  if [[ -z "$CIRCLE_WORKFLOW_ID" ]]; then
+    state_folder="${backend_path}/${project}/${folder}"
+    echo "state_folder $state_folder"
+    mkdir -p ${state_folder}
+    cat <<EOF > work/backend.tf
+  terraform {
+    backend "local" { 
+      path = "${state_folder}/terraform.tfstate"
+    }
   }
-}
 EOF
-  echo "Backend Set Up: ${state_folder}/terraform.tfstate"
+    echo "Local Backend Set Up: ${state_folder}/terraform.tfstate"
+    cat work/backend.tf
+
+  else
+    terraform_bucket=${TERRAFORM_S3_BUCKET:-cookson-pro-tf-backend}
+    # For CI/CD, use an assumable role, assume circleci role for now
+    # make profile dynamic
+    cat <<EOF > work/backend.tf
+    terraform {
+      backend "s3" {
+        bucket = "${TERRAFORM_S3_BUCKET}"
+        key    = "${project}/${folder}"
+        region = "us-east-1"
+        profile = "oidc-profile"
+      }
+    }
+EOF
+    echo "S3 Backend Set Up: ${project}/${folder}"
+    cat work/backend.tf
+  fi
 }
 
 # setupworkfolder $folder
@@ -115,9 +137,18 @@ getawscreds () {
     return 0
   fi
 
-  echo "Detected AWS template"
-  export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
-  export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
+  echo "Detected AWS provider"
+
+  which op 2>/dev/null > /dev/null
+  # if onepassword cli installed (local dev) retrieve key ID and secret
+  if [[ ! $? -eq 0 ]]; then
+    export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
+    export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
+  else
+    # in CI/CD system, assume a role
+
+  fi
+
 }
 
 getazurecreds () {
