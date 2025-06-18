@@ -88,10 +88,10 @@ setupworkfolder () {
 
   [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
   # symlink any non-dot folders to work, mainly for static or auxilliary files
-  for folder_path in $found_folders # folder_path will be like ./src, ./data
+  for folder_path in $found_folders 
   do
     local dir_name
-    dir_name=$(basename "$folder_path") # Extracts 'src' from './src'
+    dir_name=$(basename "$folder_path") # Extracts 'gcp' from './gcp'
 
     if [[ -n "$dir_name" ]]; then # Ensure dir_name is not empty
       echo "Symlinking ../$dir_name to work/$dir_name"
