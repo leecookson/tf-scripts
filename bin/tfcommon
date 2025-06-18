@@ -141,7 +141,7 @@ getawscreds () {
 
   which op 2>/dev/null > /dev/null
   # if onepassword cli installed (local dev) retrieve key ID and secret
-  if [[ ! $? -eq 0 ]]; then
+  if [[ $? -eq 0 ]]; then
     export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
     export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
   else
