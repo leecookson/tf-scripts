@@ -146,7 +146,7 @@ getawscreds () {
     export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
   else
     # in CI/CD system, assume a role
-
+    echo "using terraform's profile to use an OIDC session already created"
   fi
 
 }
