@@ -2,7 +2,7 @@ version: 2.1
 
 description: |
   A CircleCI Orb for installing custom Terraform utility scripts (tf-scripts)
-  from a specified directory (typically 'bin') within the current repository 
+  from a specified directory (typically 'bin') within the current repository
   into a directory in the system's PATH (typically /usr/local/bin)
   within a CircleCI build environment.
 
