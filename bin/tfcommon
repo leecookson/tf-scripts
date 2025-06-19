@@ -48,37 +48,21 @@ setupbackend () {
 
   echo "CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID}"
 
-  if [[ ! -z "$CIRCLE_WORKFLOW_ID" ]]; then
-    state_folder="${backend_path}/${project}/${folder}"
-    echo "state_folder $state_folder"
-    mkdir -p ${state_folder}
-    cat <<EOF > work/backend.tf
+  terraform_bucket=${TERRAFORM_S3_BUCKET:-cookson-pro-tf-backend}
+  # For CI/CD, use an assumable role, assume circleci role for now
+  # make profile dynamic
+  cat <<EOF > work/backend.tf
   terraform {
-    backend "local" { 
-      path = "${state_folder}/terraform.tfstate"
+    backend "s3" {
+      bucket = "${terraform_bucket}"
+      key    = "${project}/${folder}"
+      region = "us-east-1"
+      profile = "s3-backend"
     }
   }
 EOF
-    echo "Local Backend Set Up: ${state_folder}/terraform.tfstate"
-    cat work/backend.tf
-
-  else
-    terraform_bucket=${TERRAFORM_S3_BUCKET:-cookson-pro-tf-backend}
-    # For CI/CD, use an assumable role, assume circleci role for now
-    # make profile dynamic
-    cat <<EOF > work/backend.tf
-    terraform {
-      backend "s3" {
-        bucket = "${terraform_bucket}"
-        key    = "${project}/${folder}"
-        region = "us-east-1"
-        profile = "s3-backend"
-      }
-    }
-EOF
-    echo "S3 Backend Set Up: ${project}/${folder}"
-    cat work/backend.tf
-  fi
+  echo "S3 Backend Set Up: ${project}/${folder}"
+  cat work/backend.tf
 }
 
 # setupworkfolder $folder
