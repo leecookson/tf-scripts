@@ -7,8 +7,6 @@ folder=${1:-.}
 
 echo "tf plan $folder"
 
-project_root=$PWD
-
 is_tf_folder $folder || exit 1
 
 setupworkfolder $folder
