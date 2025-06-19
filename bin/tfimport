@@ -19,8 +19,6 @@ if [[ -z "$resource_path" ]] || [[ -z "$resource_id" ]]; then
   exit 1
 fi
 
-getcreds
-
 terraform init
 
 terraform import ${resource_path} ${resource_id}

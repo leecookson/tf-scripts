@@ -11,8 +11,6 @@ is_tf_folder $folder || exit 1
 
 setupworkfolder $folder
 
-getcreds
-
 terraform plan -destroy -out plan.tfplan
 
 terraform apply "plan.tfplan"

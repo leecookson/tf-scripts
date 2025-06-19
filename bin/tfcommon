@@ -4,16 +4,14 @@
 
 # check existence of terraform binary
 terraform=$(which terraform)
-if [ -z "$terraform" ]
-then
+if [ -z "$terraform" ]; then
   echo "terraform not found in PATH"
   exit 1
 fi
 
 # use local folder for backend, override ~/.tfbackend with env BACKEND_PATH
 backend_path=${BACKEND_PATH:-~/.tfbackend}
-if [ ! -d "$backend_path" ]
-then
+if [ ! -d "$backend_path" ]; then
   mkdir -p "$backend_path"
 fi
 
@@ -29,8 +27,8 @@ is_tf_folder() {
   fi
 
   status=1
-  find "$folder" -maxdepth 1 -type f -name "*.tf" -print -quit 2>/dev/null | grep . > /dev/null
-  
+  find "$folder" -maxdepth 1 -type f -name "*.tf" -print -quit 2>/dev/null | grep . >/dev/null
+
   if [[ $? -eq 0 ]]; then
     return 0
   else
@@ -41,14 +39,14 @@ is_tf_folder() {
 
 # setupbackend <project_name>
 #     current directory will be "folder" for this action
-setupbackend () {
+setupbackend() {
   project_name=$1
   folder=$(basename $PWD)
 
   terraform_bucket=${TERRAFORM_S3_BUCKET:-cookson-pro-tf-backend}
   # For CI/CD, use an assumable role, assume circleci role for now
   # make profile dynamic
-  cat <<EOF > work/backend.tf
+  cat <<EOF >work/backend.tf
   terraform {
     backend "s3" {
       bucket = "${terraform_bucket}"
@@ -64,7 +62,7 @@ EOF
 
 # setupworkfolder $folder
 #     currend directory has to be main project root
-setupworkfolder () {
+setupworkfolder() {
   local folder="$1"
 
   echo "Setting up $folder"
@@ -76,10 +74,12 @@ setupworkfolder () {
 
   echo "Project Name: $project_name"
   cd "$folder"
-  
+
   rm -f work/*.tf work/*.tfvars # remove in case files are removed from repo
 
   setupbackend "$project_name"
+
+  pushd work && getcreds && popd
 
   # Find directories directly under the current path (.), at depth 1.
   # -type d: only directories.
@@ -92,8 +92,7 @@ setupworkfolder () {
 
   [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
   # symlink any non-dot folders to work, mainly for static or auxilliary files
-  for folder_path in $found_folders 
-  do
+  for folder_path in $found_folders; do
     local dir_name
     dir_name=$(basename "$folder_path") # Extracts 'gcp' from './gcp'
 
@@ -108,20 +107,29 @@ setupworkfolder () {
       ln -sfn "../$dir_name" "work/$dir_name"
     fi
   done
-  
+
   cp *.tf terraform.tfvars work
   cd work
 }
 
-getawscreds () {
-  grep aws provider.tf 2>/dev/null > /dev/null
-  if [[ ! $? -eq 0 ]]; then
+getawscreds() {
+  local aws_found=0
+  grep aws provider.tf 2>/dev/null >/dev/null
+  if [[ $? == 0 ]]; then
+    aws_found=1
+  fi
+  grep s3 backend.tf 2>/dev/null >/dev/null
+  if [[ $? == 0 ]]; then
+    aws_found=1
+  fi
+
+  if [[ ${aws_found} -eq 0 ]]; then
     return 0
   fi
 
   echo "Detected AWS provider"
 
-  which op 2>/dev/null > /dev/null
+  which op 2>/dev/null >/dev/null
   # if onepassword cli installed (local dev) retrieve key ID and secret, will be used to assume oidc-profile
   if [[ $? -eq 0 ]]; then
     export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
@@ -132,8 +140,8 @@ getawscreds () {
   export AWS_PROFILE=oidc-profile
 }
 
-getazurecreds () {
-  grep azure provider.tf 2>/dev/null > /dev/null
+getazurecreds() {
+  grep azure provider.tf 2>/dev/null >/dev/null
   if [[ ! $? -eq 0 ]]; then
     return 0
   fi
@@ -149,7 +157,7 @@ getazurecreds () {
 }
 
 # GCP depends on the CLI gcloud being logged in, so that's a pre-requisite for now
-getcreds () {
+getcreds() {
   getawscreds
   getazurecreds
 }
