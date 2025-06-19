@@ -48,7 +48,7 @@ setupbackend () {
 
   echo "CIRCLE_WORKFLOW_ID=${CIRCLE_WORKFLOW_ID}"
 
-  if [[ -z "$CIRCLE_WORKFLOW_ID" ]]; then
+  if [[ ! -z "$CIRCLE_WORKFLOW_ID" ]]; then
     state_folder="${backend_path}/${project}/${folder}"
     echo "state_folder $state_folder"
     mkdir -p ${state_folder}
@@ -69,10 +69,10 @@ EOF
     cat <<EOF > work/backend.tf
     terraform {
       backend "s3" {
-        bucket = "${TERRAFORM_S3_BUCKET}"
+        bucket = "${terraform_bucket}"
         key    = "${project}/${folder}"
         region = "us-east-1"
-        profile = "oidc-profile"
+        profile = "s3-backend"
       }
     }
 EOF
@@ -140,15 +140,14 @@ getawscreds () {
   echo "Detected AWS provider"
 
   which op 2>/dev/null > /dev/null
-  # if onepassword cli installed (local dev) retrieve key ID and secret
+  # if onepassword cli installed (local dev) retrieve key ID and secret, will be used to assume oidc-profile
   if [[ $? -eq 0 ]]; then
     export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
     export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
-  else
-    # in CI/CD system, assume a role
-    echo "using terraform's profile to use an OIDC session already created"
   fi
 
+  echo "using terraform's oidc-profile to use an OIDC session already created"
+  export AWS_PROFILE=oidc-profile
 }
 
 getazurecreds () {
