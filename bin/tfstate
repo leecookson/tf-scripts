@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # source tfcommon from same bin folder
-. "`dirname $(realpath $0)`/tfcommon"
+. "$(dirname $(realpath $0))/tfcommon"
 
 folder=${1:-.}
 state_cmd=${2:-show}
@@ -10,7 +10,7 @@ resource_target_address=${4} # to support "mv" command
 
 echo "$folder $state_cmd $resource_address"
 
-usage () {
+usage() {
   echo "usage: $0 <folder> <state_cmd> <resource_address>"
   exit 1
 }
@@ -26,7 +26,6 @@ is_tf_folder $folder || exit 1
 
 setupworkfolder $folder
 
-terraform init
+terraform init -migrate-state -upgrade
 
 terraform state $state_cmd $resource_address $resource_target_address
-

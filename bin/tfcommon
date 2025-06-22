@@ -79,8 +79,6 @@ setupworkfolder() {
 
   setupbackend "$project_name"
 
-  pushd work && getcreds && popd
-
   # Find directories directly under the current path (.), at depth 1.
   # -type d: only directories.
   # ! -name '*.*': directory name does not contain a dot. This excludes hidden folders (e.g. .git) and folders with dots (e.g. my.folder).
@@ -110,6 +108,8 @@ setupworkfolder() {
 
   cp *.tf terraform.tfvars work
   cd work
+
+  getcreds
 }
 
 getawscreds() {
@@ -136,12 +136,14 @@ getawscreds() {
     export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
   fi
 
-  echo "using terraform's oidc-profile to use an OIDC session already created"
-  export AWS_PROFILE=oidc-profile
+  # NOTE: locally and on circleci, backend uses s3-backend profile explicitly, and terraform plan/apply uses oidc-profile explicitly
+  # echo "using terraform's oidc-profile to use an OIDC session already created"
+  # export AWS_PROFILE=oidc-profile
 }
 
 getazurecreds() {
-  grep azure provider.tf 2>/dev/null >/dev/null
+  echo "Checking AZURE creds $(grep azurerm provider.tf)"
+  grep azurerm provider.tf 2>/dev/null >/dev/null
   if [[ ! $? -eq 0 ]]; then
     return 0
   fi

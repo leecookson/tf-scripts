@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # source tfcommon from same bin folder
-. "`dirname $(realpath $0)`/tfcommon"
+. "$(dirname $(realpath $0))/tfcommon"
 
 folder=${1:-.}
 
@@ -10,6 +10,8 @@ echo "checking $folder"
 is_tf_folder $folder || exit 1
 
 setupworkfolder $folder
+
+terraform init -migrate-state -upgrade
 
 terraform plan -destroy -out plan.tfplan
 

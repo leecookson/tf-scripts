@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # source tfcommon from same bin folder
-. "`dirname $(realpath $0)`/tfcommon"
+. "$(dirname $(realpath $0))/tfcommon"
 
 folder=${1:-.}
 
@@ -19,6 +19,6 @@ if [[ -z "$resource_path" ]] || [[ -z "$resource_id" ]]; then
   exit 1
 fi
 
-terraform init
+terraform init -migrate-state -upgrade
 
 terraform import ${resource_path} ${resource_id}
