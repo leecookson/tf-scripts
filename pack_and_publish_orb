@@ -1,13 +1,13 @@
 #!/bin/bash
 
 echo "Packing orb"
+circleci orb pack src > orb.yml
 circleci orb validate orb.yml
-circleci orb pack orb.yml > packed_orb.yml
 
 echo "publishing orb"
 
 # For the first publish or to create a dev version:
-circleci orb publish packed_orb.yml leecookson/tf-scripts-orb@dev:alpha
+circleci orb publish orb.yml leecookson/tf-scripts-orb@dev:first
 
 # To promote a dev version to a semantic version (e.g., 1.0.0):
 # circleci orb publish promote leecookson/tf-scripts-orb@dev:alpha patch
