@@ -35,11 +35,11 @@ commands:
             fi
 
             if [ ! -d "tf-scripts" ]; then
-              echo "Cloning https://github.com/leecookson/tf-scripts into tf-scripts..."
-              git clone https://github.com/leecookson/tf-scripts tf-scripts
+              echo "Cloning https://github.com/leecookson/tf-scripts into /tmp/tf-scripts..."
+              git clone https://github.com/leecookson/tf-scripts /tmp/tf-scripts
               echo "Successfully cloned tf-scripts."
             else
-              echo "tf-scripts directory already exists. Skipping cloning."
+              echo "/tmp/tf-scripts directory already exists. Skipping cloning."
               exit 0
             fi
 
@@ -49,9 +49,9 @@ commands:
               exit 1
             fi
 
-            echo "Copying scripts from 'tf-scripts/bin/'* to '<< parameters.target_directory >>/'..."
-            if ! sudo cp -f "tf-scripts/bin/"* "<< parameters.target_directory >>/"; then
-              echo "Error: Failed to copy scripts from 'tf-scripts/bin/' to '<< parameters.target_directory >>/'."
+            echo "Copying scripts from '/tmp/tf-scripts/bin/'* to '<< parameters.target_directory >>/'..."
+            if ! sudo cp -f "/tmp/tf-scripts/bin/"* "<< parameters.target_directory >>/"; then
+              echo "Error: Failed to copy scripts from '/tmp/tf-scripts/bin/' to '<< parameters.target_directory >>/'."
               exit 1
             fi
 
