@@ -29,14 +29,22 @@ commands:
           name: "Clone tf-scripts repository"
           command: |
             set -e
+            if [ -d "tf-scripts" ]; then
+              echo "tf-scripts directory already exists. Skipping cloning."
+              exit 0
+            fi
             echo "Cloning https://github.com/leecookson/tf-scripts into tf-scripts..."
             git clone https://github.com/leecookson/tf-scripts tf-scripts
             echo "Successfully cloned tf-scripts."
       - run:
           name: "Copy tf-scripts from tf-scripts/bin to << parameters.target_directory >>"
           command: |
-            set -e
+            set -e            
             ls -R tf-scripts
+            if [ -f "<< parameters.target_directory >>/tfcommon" ]; then
+              echo "tfcommon already exists in << parameters.target_directory >>. Skipping copy."
+              exit 0
+            fi
             echo "Ensuring target directory '<< parameters.target_directory >>' exists..."
             if ! sudo mkdir -p "<< parameters.target_directory >>"; then
               echo "Error: Failed to create target directory '<< parameters.target_directory >>'."
