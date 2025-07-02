@@ -1,0 +1,25 @@
+description: "Demonstrates checking out the tf-scripts repository, installing the scripts using this Orb, and then running one of the installed scripts in a subsequent job."
+usage:
+  version: 2.1
+  orbs:
+    # Replace 'your-namespace/tf-scripts-orb@1.0.0' with your actual Orb's full name and version after publishing
+    tf_installer: leecookson/tf-scripts@1.0.0
+    gcp-cli: circleci/gcp-cli@3.3.1
+  jobs:
+    gcp-tf-plan:
+      executor: gcp-cli/default
+      steps:
+        - checkout
+        - tf-scripts/setup_backend: # arn should be passed in as an env var
+            iam_role_arn: "arn:aws:iam::021874127869:role/circle_ci_deploy"
+        - gcp-cli/setup:
+            version: 404.0.0
+            use_oidc: true
+        - run:
+            name: Terraform Plan
+            command: tfplan gcp
+
+workflows:
+  gcp-plan:
+    jobs:
+      - gcp-tf-plan

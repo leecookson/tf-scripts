@@ -1,0 +1,15 @@
+executor: gcp-cli/default
+steps:
+  - checkout
+  - aws-cli/setup:
+      profile_name: "s3-backend"
+      role_arn: "arn:aws:iam::021874127869:role/s3_backend"
+      role_session_name: "s3-backend"
+      session_duration: "1800"
+  - gcp-cli/setup:
+      version: 404.0.0
+      use_oidc: true
+  - install
+  - run:
+      name: Terraform Apply
+      command: tfapply gcp

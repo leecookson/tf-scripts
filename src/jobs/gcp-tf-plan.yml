@@ -1,0 +1,11 @@
+executor: gcp-cli/default
+steps:
+  - checkout
+  - setup_backend:
+      iam_role_arn: "arn:aws:iam::021874127869:role/circle_ci_deploy"
+  - gcp-cli/setup:
+      version: 404.0.0
+      use_oidc: true
+  - run:
+      name: Terraform Plan
+      command: tfplan gcp

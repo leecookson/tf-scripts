@@ -3,6 +3,8 @@ version: 2.1
 orbs:
   terraform: circleci/terraform@3.6.0
   aws-cli: circleci/aws-cli@5.4.0
+  azure-cli: circleci/azure-cli@1.3.2
+  gcp-cli: circleci/gcp-cli@3.3.1
 
 description: |
   A CircleCI Orb for installing custom Terraform utility scripts (tf-scripts)
@@ -14,108 +16,3 @@ display:
   home_url: "https://github.com/leecookson/tf-scripts" # Replace with your repository URL
   source_url: "https://github.com/leecookson/tf-scripts" # Replace with your repository URL
 
-# Reusable commands defined by the Orb
-commands:
-  install:
-    description: "Checks out the current repository and copies tf-scripts from ./bin to a target directory in the PATH. Note: If called by a job that also performs a checkout, this might result in a redundant checkout operation."
-    parameters:
-      target_directory:
-        type: string
-        default: "/usr/local/bin" # Optional
-        description: "The target directory (expected to be in PATH) where scripts will be copied (e.g., '/usr/local/bin')."
-    steps:
-      - terraform/install
-      - run:
-          name: "Install Terraform Helper Scripts"
-          command: |
-            set -e
-            if [ -f "<< parameters.target_directory >>/tfcommon" ]; then
-              echo "tfcommon already exists in << parameters.target_directory >>. Skipping copy."
-              exit 0
-            fi
-
-            if [ ! -d "tf-scripts" ]; then
-              echo "Cloning https://github.com/leecookson/tf-scripts into /tmp/tf-scripts..."
-              git clone https://github.com/leecookson/tf-scripts /tmp/tf-scripts
-              echo "Successfully cloned tf-scripts."
-            else
-              echo "/tmp/tf-scripts directory already exists. Skipping cloning."
-              exit 0
-            fi
-
-            echo "Ensuring target directory '<< parameters.target_directory >>' exists..."
-            if ! sudo mkdir -p "<< parameters.target_directory >>"; then
-              echo "Error: Failed to create target directory '<< parameters.target_directory >>'."
-              exit 1
-            fi
-
-            echo "Copying scripts from '/tmp/tf-scripts/bin/'* to '<< parameters.target_directory >>/'..."
-            if ! sudo cp -f "/tmp/tf-scripts/bin/"* "<< parameters.target_directory >>/"; then
-              echo "Error: Failed to copy scripts from '/tmp/tf-scripts/bin/' to '<< parameters.target_directory >>/'."
-              exit 1
-            fi
-
-            echo "Successfully copied scripts."
-            echo "Verifying copied scripts in '<< parameters.target_directory >>' (tf*.sh):"
-            ls -l "<< parameters.target_directory >>/tf"* || echo "Note: No tf* scripts found in '<< parameters.target_directory >>' or ls command failed."
-  setup_backend:
-    description: "Pulls in the AWS orb and initializes the backend s3-profile profile"
-    parameters:
-      iam_role_arn:
-        type: string
-        description: "AWS IAM Role that will be assumed by the Pipeline's runtime identity."
-    steps:
-      - install
-      - aws-cli/setup:
-          profile_name: "s3-backend"
-          role_arn: "<< parameters.iam_role_arn >>"
-          role_session_name: "s3-backend-session"
-          session_duration: "1800"
-
-# Reusable jobs defined by the Orb
-jobs:
-  install_scripts:
-    description: "Checks out the current repository and installs tf-scripts using the 'install_tf_scripts_to_path' command."
-    docker: # Defines the default execution environment for this job
-      - image: cimg/base:stable # A general-purpose CircleCI convenience image
-    parameters:
-      checkout_path:
-        type: string
-        default: "." # Relative path within the working_directory to checkout to
-        description: "Path to checkout the repository to."
-      script_target_dir_in_path:
-        type: string
-        default: "/usr/local/bin"
-        description: "The target directory (expected to be in PATH) to copy the scripts to (e.g., '/usr/local/bin')."
-    steps:
-      - checkout:
-          path: << parameters.checkout_path >>
-      - install: # Corrected to call the 'install' command defined above
-          target_directory: << parameters.script_target_dir_in_path >>
-
-# Example usage of the Orb
-examples:
-  install_and_run_script:
-    description: "Demonstrates checking out the tf-scripts repository, installing the scripts using this Orb, and then running one of the installed scripts in a subsequent job."
-    usage:
-      version: 2.1
-      orbs:
-        # Replace 'your-namespace/tf-scripts-orb@1.0.0' with your actual Orb's full name and version after publishing
-        tf_installer: leecookson/tf-scripts-orb@1.0.0
-      workflows:
-        main_workflow:
-          jobs:
-            - tf_installer/install_scripts:
-                name: setup_my_tf_scripts # Optional: give the job instance a custom name
-            # Add other jobs here that would use the installed scripts
-            - run_terraform_command:
-                docker: [image: cimg/base:stable] # Or your preferred image with Terraform
-                requires: [setup_my_tf_scripts] # Depends on the scripts being installed
-                steps:
-                  - checkout # If this job needs project files
-                  - run:
-                      name: "Execute a tf-script"
-                      command: |
-                        echo "PATH is: $PATH"
-                        echo "Attempting to run tfplan.sh..."
-                        tfplan.sh # Assuming tfplan.sh is now in PATH and you are in a TF project directory

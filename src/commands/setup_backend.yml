@@ -1,0 +1,16 @@
+description: "Pulls in the AWS orb and initializes the backend s3-profile profile, runs 'install' first"
+parameters:
+  iam_role_arn:
+    type: string
+    description: "AWS IAM Role that will be assumed by the Pipeline's runtime identity."
+  target_directory:
+    type: string
+    description: "The target directory (expected to be in PATH) where tf scripts will be copied (e.g., '/usr/local/bin')."
+    default: "/usr/local/bin"
+steps:
+  - install
+  - aws-cli/setup:
+      profile_name: "s3-backend"
+      role_arn: "<< parameters.iam_role_arn >>"
+      role_session_name: "s3-backend-session"
+      session_duration: "1800"

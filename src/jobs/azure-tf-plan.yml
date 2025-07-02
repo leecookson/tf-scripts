@@ -1,0 +1,20 @@
+executor: azure-cli/default
+steps:
+  - checkout
+  - aws-cli/setup:
+      profile_name: "s3-backend"
+      role_arn: "arn:aws:iam::021874127869:role/s3_backend"
+      role_session_name: "s3-backend"
+      session_duration: "1800"
+  - azure-cli/install
+  - run:
+      name: Login to Azure using OIDC
+      command: |
+        az login --federated-token "$CIRCLE_OIDC_TOKEN" \
+                --service-principal \
+                --username "$AZURE_CLIENT_ID" \
+                --tenant "$AZURE_TENANT_ID"
+  - install
+  - run:
+      name: Terraform Plan Azure
+      command: tfplan azure

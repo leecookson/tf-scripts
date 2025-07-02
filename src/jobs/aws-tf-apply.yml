@@ -1,0 +1,17 @@
+executor: aws-cli/default
+steps:
+  - checkout
+  - aws-cli/setup:
+      profile_name: "s3-backend"
+      role_arn: "arn:aws:iam::021874127869:role/s3_backend"
+      role_session_name: "s3-backend"
+      session_duration: "1800"
+  - aws-cli/setup:
+      profile_name: "oidc-profile"
+      role_arn: "arn:aws:iam::021874127869:role/circle_ci_deploy"
+      role_session_name: "oidc-session"
+      session_duration: "1800"
+  - install
+  - run:
+      name: Terraform Apply AWS
+      command: tfapply aws
