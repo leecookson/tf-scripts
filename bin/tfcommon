@@ -3,8 +3,7 @@
 ## INIT for all uses
 
 # check existence of terraform binary
-terraform=$(which terraform)
-if [ -z "$terraform" ]; then
+if ! type terraform >/dev/null 2>&1; then
   echo "terraform not found in PATH"
   exit 1
 fi
