@@ -69,6 +69,7 @@ setupworkfolder() {
     echo "Creating work folder for $folder"
     mkdir -p "$folder/work"
   fi
+  # TODO: make this circle-ci agnostic
   local project_name=${CIRCLE_PROJECT_REPONAME:-$(basename $PWD)}
 
   echo "Project Name: $project_name"
@@ -141,7 +142,7 @@ getawscreds() {
 }
 
 getazurecreds() {
-  echo "Checking AZURE creds $(grep azurerm provider.tf)"
+  # echo "Checking AZURE creds $(grep azurerm provider.tf)"
   grep azurerm provider.tf 2>/dev/null >/dev/null
   if [[ ! $? -eq 0 ]]; then
     return 0
