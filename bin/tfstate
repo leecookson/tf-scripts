@@ -8,10 +8,17 @@ state_cmd=${2:-show}
 resource_address=${3}
 resource_target_address=${4} # to support "mv" command
 
-echo "$folder $state_cmd $resource_address"
+echo "$folder $state_cmd $resource_address $resource_target_address"
 
 usage() {
-  echo "usage: $0 <folder> <state_cmd> <resource_address>"
+  echo "usage: $0 <folder> <state_cmd> [<resource_address>] [<resource_target_address>]"
+  echo "  folder: path to the Terraform configuration folder (default: current directory)"
+  echo "  state_cmd: command to run on the Terraform state (e.g., list, show, mv)"
+  echo "  resource_address: address of the resource in the state (required for show, rm, mv commands)"
+  echo "  resource_target_address: target address for mv command (required for mv command)"
+  echo "example: $0 aws list"
+  echo "example: $0 aws show aws_instance.example"
+  echo "example: $0 azure mv aws_instance.example aws_instance.new_example"
   exit 1
 }
 [[ -z "$state_cmd" ]] && usage
@@ -27,5 +34,6 @@ is_tf_folder $folder || exit 1
 setupworkfolder $folder
 
 terraform init -migrate-state -upgrade
-
-terraform state $state_cmd $resource_address $resource_target_address
+cmd="terraform state $state_cmd $resource_address $resource_target_address"
+echo $cmd
+$cmd
