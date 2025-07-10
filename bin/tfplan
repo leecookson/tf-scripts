@@ -11,8 +11,6 @@ is_tf_folder $folder || exit 1
 
 setupworkfolder $folder
 
-terraform --version
-
 terraform init -migrate-state -upgrade
 
 terraform plan -out plan.tfplan

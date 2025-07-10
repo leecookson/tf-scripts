@@ -8,6 +8,8 @@ if ! type terraform >/dev/null 2>&1; then
   exit 1
 fi
 
+terraform --version
+
 # use local folder for backend, override ~/.tfbackend with env BACKEND_PATH
 backend_path=${BACKEND_PATH:-~/.tfbackend}
 if [ ! -d "$backend_path" ]; then
