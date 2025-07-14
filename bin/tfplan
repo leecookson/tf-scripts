@@ -5,9 +5,16 @@
 
 folder=${1:-.}
 
+usage() {
+  echo "usage: $0 <folder>"
+  echo "example: $0 aws"
+  exit 1
+}
+[[ -z "$folder" ]] && usage
+
 echo "tf plan $folder"
 
-is_tf_folder $folder || exit 1
+is_tf_folder $folder || usage
 
 setupworkfolder $folder
 
