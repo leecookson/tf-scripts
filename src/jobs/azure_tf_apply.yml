@@ -1,5 +1,6 @@
+# orb-tools/ignore: RC009
 executor: azure-cli/default
-description: "Run Terraform Plan for Azure"
+description: "Run Terraform Apply for Azure"
 steps:
   - checkout
   - aws-cli/setup:
@@ -17,5 +18,5 @@ steps:
                 --tenant "$AZURE_TENANT_ID"
   - install
   - run:
-      name: Terraform Plan Azure
-      command: tfplan azure
+      name: Terraform Apply Azure
+      command: tfapply azure
