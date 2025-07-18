@@ -1,4 +1,5 @@
 executor: aws-cli/default
+description: "Run Terraform Apply for AWS"
 steps:
   - checkout
   - aws-cli/setup:

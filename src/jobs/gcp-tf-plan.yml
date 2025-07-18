@@ -1,4 +1,5 @@
 executor: gcp-cli/default
+description: "Run Terraform Plan for GCP"
 steps:
   - checkout
   - setup_backend:

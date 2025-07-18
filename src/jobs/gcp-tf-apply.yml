@@ -1,4 +1,5 @@
 executor: gcp-cli/default
+description: "Run Terraform Apply for GCP"
 steps:
   - checkout
   - aws-cli/setup:

@@ -1,4 +1,5 @@
 executor: azure-cli/default
+description: "Run Terraform Apply for Azure"
 steps:
   - checkout
   - aws-cli/setup:
