@@ -61,9 +61,72 @@ EOF
   cat work/backend.tf
 }
 
-# setupworkfolder $folder
+detectnpmbuild() {
+  # Check if package.json exists in the current directory
+  if [[ -f "package.json" ]]; then
+    build_script=$(npm pkg get scripts.build_lambda 2>/dev/null)
+
+    if [[ "$build_script" != "{}" ]] && [[ -n "$build_script" ]]; then
+      echo "Build script found in package.json: $build_script"
+      return 0
+    else
+      # echo "No 'build' script found in package.json."
+      return 1
+    fi
+
+    return 0
+  else
+    # echo "Not an npm project"
+    return 1
+  fi
+}
+
+installlambdas() {
+  # Clone lambda repositories if LAMBDA_REPOS is set
+  # "npm run build_lambda" must produce a lambda.zip in the repo's folder
+  if [[ -n "$LAMBDA_REPOS" ]]; then
+    echo "Cloning and building lambda repos"
+    # Split LAMBDA_REPOS by comma and iterate over each repo
+    IFS=',' read -ra repos <<<"$LAMBDA_REPOS"
+    for repo in "${repos[@]}"; do
+      echo "Cloning lambda repo: $repo"
+      git clone "$repo"
+      # run npm instal and build for each repo
+      repo_name=$(basename "$repo" .git)
+      if [[ -d "$repo_name" ]]; then
+        pushd "$repo_name"
+        if [[ detectnpmbuild -eq 0 ]]; then
+          echo "Detected npm project in $repo_name, running npm install and build"
+          npm install && npm run build_lambda
+        else
+          echo "Skipping lambda install"
+        fi
+        popd # go back to the work folder
+      fi
+    done
+  fi
+}
+
+loadjobvars() {
+  # Load job variables from the environment or a file
+  if [[ -f "job.vars" ]]; then
+    echo "Loading job variables from job.vars"
+    source job.vars
+  elif [[ -f "job.vars" ]]; then
+    echo "Loading job variables from job.vars"
+    source job.vars
+  else
+    echo "No job.vars file found, using environment variables"
+  fi
+
+  # Check if LAMBDA_REPOS is set, if not, set it to an empty string
+  LAMBDA_REPOS=${LAMBDA_REPOS:-""}
+}
+
+# setupworkfolder <folder>
 #     currend directory has to be main project root
 setupworkfolder() {
+  set -x
   local folder="$1"
 
   echo "Setting up $folder"
@@ -77,7 +140,10 @@ setupworkfolder() {
   echo "Project Name: $project_name"
   cd "$folder"
 
-  rm -f work/*.tf work/*.tfvars # remove in case files are removed from repo
+  echo "Removing old work files"
+  rm -fr work/* # wipe all work files
+
+  loadjobvars
 
   setupbackend "$project_name"
 
@@ -108,8 +174,11 @@ setupworkfolder() {
     fi
   done
 
+  [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work
   cp *.tf terraform.tfvars work
   cd work
+
+  installlambdas
 
   getcreds
 }
