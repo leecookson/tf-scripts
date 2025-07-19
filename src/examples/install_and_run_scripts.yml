@@ -3,7 +3,7 @@ usage:
   version: 2.1
   orbs:
     # Replace 'your-namespace/tf-scripts-orb@1.0.1' with your actual Orb's full name and version after publishing
-    tf_installer: leecookson/tf-scripts@1.0.1
+    tf_installer: leecookson/tf-scripts-orb@1
     gcp-cli: circleci/gcp-cli@3.3.1
   jobs:
     gcp-tf-plan:
