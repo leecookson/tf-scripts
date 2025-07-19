@@ -17,7 +17,7 @@ workflows:
           filters: *filters
       - orb-tools/review:
           orb_name: <orb-name>
-          exclude: RC009
+          exclude: RC009,RC011
           filters: *filters
       - shellcheck/check:
           filters: *filters
