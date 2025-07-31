@@ -5,6 +5,10 @@
 
 folder=${1:-.}
 
+echo "Current working directory: $(pwd)"
+echo "Files in current directory:"
+ls -la
+
 usage() {
   echo "usage: $0 <folder>"
   echo "example: $0 aws"
