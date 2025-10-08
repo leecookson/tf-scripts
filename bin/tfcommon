@@ -1,6 +1,22 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash +x
 
 ## INIT for all uses
+TERRAFORM_AWS_BACKEND_PROFILE=s3-profile
+TERRAFORM_BACKEND_BUCKET=cookson-pro-tf-backend
+AWS_DEPLOY_PROFILE=oidc-profile
+
+# Centralise folder detection since it can be "folder" or "folder/env"
+export folder=${1:-.}
+
+# If folder contains a slash, split it to vars "folder" and "env"
+if [[ "$folder" == *"/"* ]]; then
+  export env=$(basename "$folder")
+  export folder=$(dirname "$folder")
+else
+  export env=""
+fi
+
+echo "Startup, detected: folder ${folder}, env ${env}"
 
 # check existence of terraform binary
 if ! type terraform >/dev/null 2>&1; then
@@ -16,7 +32,17 @@ if [ ! -d "$backend_path" ]; then
   mkdir -p "$backend_path"
 fi
 
-export TF_CLI_ARGS_init="-compact-warnings"
+# check for a command line parameter --reconfigure in any position and set variable reconfigure=true
+if [[ " $* " == *" --reconfigure "* ]]; then
+  reconfigure=true
+fi
+
+# make this a CLI option to (rarely) do a reconfigure, do migrate-state by default
+if [[ $reconfigure == true ]]; then
+  export TF_CLI_ARGS_init="-compact-warnings -upgrade -reconfigure"
+else
+  export TF_CLI_ARGS_init="-compact-warnings -upgrade -migrate-state"
+fi
 
 ## Functions
 is_tf_folder() {
@@ -38,30 +64,67 @@ is_tf_folder() {
   fi
 }
 
+## Returns 0 if logged in, 1 if call fails
+_isbackendloggedin() {
+  echo "Checking AWS backend login status (profile ${TERRAFORM_AWS_BACKEND_PROFILE})..."
+  aws sts get-caller-identity --profile ${TERRAFORM_AWS_BACKEND_PROFILE} >/dev/null 2>&1
+  return $?
+}
+
 # setupbackend <project_name>
 #     current directory will be "folder" for this action
 setupbackend() {
   project_name=$1
   folder=$(basename $PWD)
+  key_path=${folder}
+  [[ "$env" != "" ]] && key_path="$folder/$env"
 
-  terraform_bucket=${TERRAFORM_S3_BUCKET:-cookson-pro-tf-backend}
+  _isbackendloggedin || { echo "Not logged in to AWS, cannot set up S3 backend $?"; exit 1; }
+  # echo ==============
+  # echo "$TERRAFORM_AWS_BACKEND_PROFILE"
+  # echo "$TERRAFORM_BACKEND_BUCKET"
+  # echo "$AWS_DEPLOY_PROFILE"
+  # echo ==============
+
   # For CI/CD, use an assumable role, assume circleci role for now
   # make profile dynamic
-  cat <<EOF >work/backend.tf
+  cat <<EOF >work/_backend.tf
   terraform {
     backend "s3" {
-      bucket = "${terraform_bucket}"
-      key    = "${project_name}/${folder}"
+      bucket = "${TERRAFORM_BACKEND_BUCKET}"
+      key    = "${project_name}/${key_path}"
+      use_lockfile = true
       region = "us-east-1"
-      profile = "s3-backend"
+      profile = "${TERRAFORM_AWS_BACKEND_PROFILE}"
     }
   }
 EOF
-  echo "S3 Backend Set Up: ${project_name}/${folder}"
-  cat work/backend.tf
+  echo "S3 Backend Set Up: ${project_name}/${key_path}"
+  # cat work/_backend.tf
 }
 
 detectnpmbuild() {
+  # Check if package.json exists in the current directory
+  if [[ -f "package.json" ]]; then
+    build_script=$(npm pkg get scripts.build_lambda 2>/dev/null)
+
+    if [[ "$build_script" != "{}" ]] && [[ -n "$build_script" ]]; then
+      echo "Build script found in package.json: $build_script"
+      return 0
+    else
+      # echo "No 'build' script found in package.json."
+      return 1
+    fi
+
+    return 0
+  else
+    # echo "Not an npm project"
+    return 1
+  fi
+}
+
+# Require poetry installed for python lambdas
+detectpoetrybuild() {
   # Check if package.json exists in the current directory
   if [[ -f "package.json" ]]; then
     build_script=$(npm pkg get scripts.build_lambda 2>/dev/null)
@@ -108,15 +171,23 @@ installlambdas() {
 }
 
 loadjobvars() {
+  echo "Loading job variables from $PWD"
   # Load job variables from the environment or a file
   if [[ -f "job.vars" ]]; then
-    echo "Loading job variables from job.vars"
+    echo " > Loading $folder/job.vars"
     source job.vars
-  elif [[ -f "job.vars" ]]; then
-    echo "Loading job variables from job.vars"
-    source job.vars
-  else
-    echo "No job.vars file found, using environment variables"
+  elif [[ -f ".env" ]]; then
+    echo " > Loading $folder/.env"
+    source .env
+  fi
+
+  # if job.vars is in folder/env, load those, with higher precedentt than file in folder
+  if [[ -f "envs/$env/job.vars" ]]; then
+    echo " > Loading $folder/envs/$env/job.vars"
+    source "envs/$env/job.vars"
+  elif [[ -f "envs/$env/.env" ]]; then
+    echo " > Loading $folder/$envs/env/.env"
+    source "envs/$env/.env"
   fi
 
   # Check if LAMBDA_REPOS is set, if not, set it to an empty string
@@ -126,13 +197,19 @@ loadjobvars() {
 # setupworkfolder <folder>
 #     currend directory has to be main project root
 setupworkfolder() {
-  set -x
   local folder="$1"
+
+  if [[ -d "$folder/work" ]]; then
+    echo "Removing old work files"
+    rm -fr "$folder/work" # wipe all work files
+  fi
 
   echo "Setting up $folder"
   if [[ ! -d "$folder/work" ]]; then
     echo "Creating work folder for $folder"
     mkdir -p "$folder/work"
+  else
+    echo " ********> Work folder already exists for $folder"
   fi
   # TODO: make this circle-ci agnostic
   local project_name=${CIRCLE_PROJECT_REPONAME:-$(basename $PWD)}
@@ -140,12 +217,9 @@ setupworkfolder() {
   echo "Project Name: $project_name"
   cd "$folder"
 
-  echo "Removing old work files"
-  rm -fr work/* # wipe all work files
-
   loadjobvars
 
-  setupbackend "$project_name"
+  setupbackend "$project_name" || { echo "Backend Setup Failed"; return 1; }
 
   # Find directories directly under the current path (.), at depth 1.
   # -type d: only directories.
@@ -154,7 +228,7 @@ setupworkfolder() {
   # -print: prints the found path.
   # Errors (e.g., permission denied) are suppressed.
   local found_folders
-  found_folders=$(find . -maxdepth 1 -type d ! -name '*.*' ! -name 'work' -print 2>/dev/null)
+  found_folders=$(find . -maxdepth 1 -type d ! -name '*.*' ! -name 'work' ! -name 'envs' -print 2>/dev/null)
 
   [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
   # symlink any non-dot folders to work, mainly for static or auxilliary files
@@ -175,12 +249,26 @@ setupworkfolder() {
   done
 
   [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work
-  cp *.tf terraform.tfvars work
+  
+  cp *.tf terraform.tfvars work 2>/dev/null
+
+  # If var env is not empty, copy from that folder also
+  [[ "$env" != "" ]] && [[ -d "envs/$env" ]] && cp envs/${env}/*.tf envs/${env}/terraform.tfvars work 2>/dev/null
+  
   cd work
 
   installlambdas
 
   getcreds
+
+  echo "Running terraform commands in ${PWD}"
+}
+
+## Returns 0 if logged in, 1 if call fails
+_isawsloggedin() {
+  echo "Checking AWS deploy login status (profile ${AWS_DEPLOY_PROFILE})..."
+  aws sts get-caller-identity --profile ${AWS_DEPLOY_PROFILE} >/dev/null 2>&1
+  return $?
 }
 
 getawscreds() {
@@ -199,17 +287,13 @@ getawscreds() {
   fi
 
   echo "Detected AWS provider"
+  
+  # Check for access via AWS_DEPLOY_PROFILE, use oidc to log in for AWS deploy access
+  _isawsloggedin || { echo "Not logged in to AWS, cannot deploy. Log into ${AWS_DEPLOY_PROFILE} to obtain credentials"; exit 1; }
 
-  which op 2>/dev/null >/dev/null
-  # if onepassword cli installed (local dev) retrieve key ID and secret, will be used to assume oidc-profile
-  if [[ $? -eq 0 ]]; then
-    export AWS_ACCESS_KEY_ID=$(op item get 'Terraform AWS Key' --fields 'access key id')
-    export AWS_SECRET_ACCESS_KEY=$(op item get 'Terraform AWS Key' --reveal --fields 'secret access key')
-  fi
-
-  # NOTE: locally and on circleci, backend uses s3-backend profile explicitly, and terraform plan/apply uses oidc-profile explicitly
-  # echo "using terraform's oidc-profile to use an OIDC session already created"
-  # export AWS_PROFILE=oidc-profile
+  # NOTE: locally and on circleci, backend uses TERRAFORM_AWS_BACKEND_PROFILE explicitly, and terraform plan/apply uses AWS_DEPLOY_PROFILE explicitly
+  echo "Using AWS profile ${AWS_DEPLOY_PROFILE} to deploy"
+  export AWS_PROFILE=${AWS_DEPLOY_PROFILE}
 }
 
 getazurecreds() {

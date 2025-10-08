@@ -3,11 +3,9 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-folder=${1:-.}
-
 echo "Current working directory: $(pwd)"
-echo "Files in current directory:"
-ls -la
+# echo "Files in current directory: $(ls -la)"
+echo "Detected folder ${folder}, env ${env}"
 
 usage() {
   echo "usage: $0 <folder>"
@@ -20,7 +18,7 @@ echo "tf plan $folder"
 
 is_tf_folder $folder || usage
 
-setupworkfolder $folder
+setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform fmt -check -v
 

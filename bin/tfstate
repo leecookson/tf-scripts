@@ -3,12 +3,12 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-folder=${1:-.}
+# first parameter is folder/env, handled by tfcommon
 state_cmd=${2:-show}
 resource_address=${3}
 resource_target_address=${4} # to support "mv" command
 
-echo "$folder $state_cmd $resource_address $resource_target_address"
+# echo "$folder $state_cmd $resource_address $resource_target_address"
 
 usage() {
   echo "usage: $0 <folder> <state_cmd> [<resource_address>] [<resource_target_address>]"
@@ -27,13 +27,13 @@ usage() {
 
 [[ "$state_cmd" == "mv" ]] && [[ -z "$resource_target_address" ]] && usage
 
-echo "checking $folder"
-
 is_tf_folder $folder || exit 1
 
-setupworkfolder $folder
+setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform init -migrate-state -upgrade
+
+# this is dynamic based on the state_cmd, so we catenate and execute the result
 cmd="terraform state $state_cmd $resource_address $resource_target_address"
 echo $cmd
 $cmd

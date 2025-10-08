@@ -3,13 +3,11 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-folder=${1:-.}
-
 echo "checking $folder"
 
 is_tf_folder $folder || exit 1
 
-setupworkfolder $folder
+setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 resource_path=${2}
 resource_id=${3}

@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 
-common_bin_folders="/usr/local/bin $HOME/bin"
+source_bin="`dirname $(realpath $0)`/bin"
 default_bin="$HOME/bin"
-local_bin="`dirname $(realpath $0)`/bin"
+bin_folders="/usr/local/bin $HOME/bin"
 
-echo "Will try to install in $common_bin_folders"
-echo "$HOME/.bin will be created if previous paths aren't writable, and it doesn't exist"
+echo "Will try to link scripts in $bin_folders"
+echo "$HOME/bin will be created if previous paths aren't writable, and it doesn't exist"
 
-for folder in $common_bin_folders
+target_bin=${default_bin}
+
+for folder in ${bin_folders}
 do  
-
-  if [ "${folder}" == "${default_bin}" ]
-  then
-    mkdir -p ${default_bin}
-  fi
 
   if [ -d $folder ]
   then
@@ -23,21 +20,26 @@ do
       continue
     fi
 
-    echo "installing in $folder"
-    for b in "$local_bin"/*
-    do
-      cmdname=`basename $b`
-      if [ ! -f $folder/$cmdname ]
-      then
-        echo "linking $b to $folder"
-        ln -s ${b} ${folder}
-      else
-        echo "link from $b to $folder already exists"
-      fi
-      
-    done
-  
-    exit 0
+    # bin found and writable
+    target_bin=$folder
   fi
 done
 
+if [ "${folder}" == "${default_bin}" ]
+then
+  mkdir -p ${default_bin}
+fi
+
+echo "installing in $target_bin"
+for b in "$source_bin"/*
+do
+  cmdname=`basename $b`
+  if [ ! -f ${target_bin}/$cmdname ]
+  then
+    echo "linking $b to $target_bin"
+    ln -s ${b} ${folder}
+  else
+    echo "link from $b to $target_bin already exists"
+  fi
+  
+done

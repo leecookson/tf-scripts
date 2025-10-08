@@ -3,20 +3,9 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-folder=${1:-.}
-
-usage() {
-  echo "usage: $0 <folder>"
-  echo "example: $0 aws"
-  exit 1
-}
-[[ -z "$folder" ]] && usage
-
-echo "tf plan $folder"
-
 is_tf_folder $folder || usage
 
-setupworkfolder $folder
+setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform init -migrate-state -upgrade
 
