@@ -248,7 +248,7 @@ setupworkfolder() {
     fi
   done
 
-  [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work
+  [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work 2>/dev/null
   
   cp *.tf terraform.tfvars work 2>/dev/null
 

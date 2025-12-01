@@ -9,6 +9,6 @@ setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1;
 
 terraform init -migrate-state -upgrade
 
-terraform plan -out plan.tfplan
+terraform plan -input=false -out plan.tfplan
 
-terraform apply "plan.tfplan"
+terraform apply -input=false "plan.tfplan"

@@ -11,6 +11,6 @@ terraform init -migrate-state -upgrade
 
 # since there should be no code when a lambda is being destroyed, we can skip the build step
 
-terraform plan -destroy -out plan.tfplan
+terraform plan -input=false -destroy -out plan.tfplan
 
 terraform apply "plan.tfplan"

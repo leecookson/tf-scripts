@@ -24,4 +24,4 @@ terraform fmt -check -v
 
 terraform init -migrate-state -upgrade
 
-terraform plan -out plan.tfplan
+terraform plan -input=false -out plan.tfplan

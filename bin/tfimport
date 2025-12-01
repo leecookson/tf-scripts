@@ -19,4 +19,4 @@ fi
 
 terraform init -migrate-state -upgrade
 
-terraform import ${resource_path} ${resource_id}
+terraform import -input=false ${resource_path} ${resource_id}
