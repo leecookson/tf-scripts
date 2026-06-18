@@ -3,9 +3,9 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-parse_apply_opts "$@"
+echo "Current working directory: $(pwd)"
+echo "Detected folder ${folder}, env ${env}"
 
-is_tf_folder $folder || usage
 usage() {
   echo "Usage: $0 [folder|folder/env]"
   echo "Example: $0 aws"
@@ -17,22 +17,21 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   usage
 fi
 
+echo "tf output $folder"
+
 is_tf_folder "$folder" || exit 1
 
 setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform init
 
-terraform plan -input=false $(target_args) -out plan.tfplan
-echo "TARGET_ARGS $target_args"
-
-terraform apply -input=false $(target_args) "plan.tfplan"
-apply_exit=$?
+terraform output
+output_exit=$?
 
 target="${folder}${env:+/$env}"
-if [[ $apply_exit -eq 0 ]]; then
-  echo -e "\e[34mApply for ${target} complete SUCCESS\e[0m"
+if [[ $output_exit -eq 0 ]]; then
+  echo -e "\e[34mOutput for ${target} complete SUCCESS\e[0m"
 else
-  echo -e "\e[31mApply for ${target} FAILED\e[0m"
+  echo -e "\e[31mOutput for ${target} FAILED\e[0m"
 fi
-exit $apply_exit
+exit $output_exit
