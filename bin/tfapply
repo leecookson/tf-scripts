@@ -26,7 +26,6 @@ terraform init
 terraform plan -input=false $(target_args) -out plan.tfplan
 
 terraform apply -input=false $(target_args) "plan.tfplan"
-terraform apply "plan.tfplan"
 apply_exit=$?
 
 target="${folder}${env:+/$env}"
