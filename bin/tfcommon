@@ -266,9 +266,12 @@ setupworkfolder() {
   done
 
   [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work 2>/dev/null
-  
+
   # inlcude *.tpl for terraform "template" local files
   cp *.tf *.tpl terraform.tfvars work 2>/dev/null
+
+  # carry the lock file in so init doesn't re-resolve providers from scratch
+  [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl work/
 
   # If var env is not empty, copy from that folder also
   [[ "$env" != "" ]] && [[ -d "envs/$env" ]] && cp envs/${env}/*.tf envs/${env}/terraform.tfvars work 2>/dev/null
@@ -280,6 +283,26 @@ setupworkfolder() {
   getcreds
 
   echo "Running terraform commands in ${PWD}"
+}
+
+# setupworkfolder_cached <folder>
+# Reuses existing work folder when _backend.tf is recent; otherwise runs full setup + init.
+# Override the freshness window with WORK_FOLDER_TTL_MINUTES (default: 60).
+setupworkfolder_cached() {
+  local folder="$1"
+  local work_ttl_minutes=${WORK_FOLDER_TTL_MINUTES:-60}
+  local backend_config="$folder/work/_backend.tf"
+
+  if find "$backend_config" -mmin -"$work_ttl_minutes" 2>/dev/null | grep -q .; then
+    echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old)"
+    cd "$folder/work"
+    getcreds
+  else
+    setupworkfolder "$folder" || return 1
+    terraform init
+    # write back updated lock file so it can be committed from the source folder
+    [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl "../.terraform.lock.hcl"
+  fi
 }
 
 ## Returns 0 if logged in, 1 if call fails

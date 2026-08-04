@@ -17,8 +17,6 @@ echo "checking $folder"
 
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
-
 resource_path=${2}
 resource_id=${3}
 
@@ -27,6 +25,6 @@ if [[ -z "$resource_path" ]] || [[ -z "$resource_id" ]]; then
   usage
 fi
 
-terraform init -migrate-state -upgrade
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform import -input=false ${resource_path} ${resource_id}

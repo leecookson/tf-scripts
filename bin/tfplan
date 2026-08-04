@@ -22,11 +22,9 @@ echo "tf plan $folder"
 
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform fmt -check -v
-
-terraform init
 
 terraform plan -input=false -out plan.tfplan
 plan_exit=$?

@@ -19,9 +19,7 @@ fi
 
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
-
-terraform init
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform plan -input=false $(target_args) -out plan.tfplan
 
