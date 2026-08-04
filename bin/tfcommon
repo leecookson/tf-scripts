@@ -284,6 +284,9 @@ setupworkfolder() {
 
   getcreds
 
+  # record which env this work folder was initialised for
+  echo "${env}" > .env_name
+
   echo "Running terraform commands in ${PWD}"
 }
 
@@ -295,8 +298,11 @@ setupworkfolder_cached() {
   local work_ttl_minutes=${WORK_FOLDER_TTL_MINUTES:-60}
   local backend_config="$folder/work/_backend.tf"
 
-  if find "$backend_config" -mmin -"$work_ttl_minutes" 2>/dev/null | grep -q .; then
-    echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old)"
+  local cached_env
+  cached_env=$(cat "$folder/work/.env_name" 2>/dev/null)
+
+  if find "$backend_config" -mmin -"$work_ttl_minutes" 2>/dev/null | grep -q . && [[ "$cached_env" == "$env" ]]; then
+    echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old, env=${env})"
     cd "$folder"
     loadjobvars
     cd work
