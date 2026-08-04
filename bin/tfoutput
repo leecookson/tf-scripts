@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# source tfcommon from same bin folder
+. "$(dirname $(realpath $0))/tfcommon"
+
+echo "Current working directory: $(pwd)"
+echo "Detected folder ${folder}, env ${env}"
+
+usage() {
+  echo "Usage: $0 [folder|folder/env]"
+  echo "Example: $0 aws"
+  echo "Example: $0 aws/dev"
+  exit 1
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  usage
+fi
+
+echo "tf output $folder"
+
+is_tf_folder "$folder" || exit 1
+
+setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
+
+terraform init
+
+terraform output
+output_exit=$?
+
+target="${folder}${env:+/$env}"
+if [[ $output_exit -eq 0 ]]; then
+  echo -e "\e[34mOutput for ${target} complete SUCCESS\e[0m"
+else
+  echo -e "\e[31mOutput for ${target} FAILED\e[0m"
+fi
+exit $output_exit

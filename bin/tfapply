@@ -22,6 +22,7 @@ is_tf_folder "$folder" || exit 1
 setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform plan -input=false $(target_args) -out plan.tfplan
+echo "TARGET_ARGS $target_args"
 
 terraform apply -input=false $(target_args) "plan.tfplan"
 apply_exit=$?

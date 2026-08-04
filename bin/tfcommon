@@ -46,6 +46,8 @@ fi
 
 ## Functions
 
+# Note: terraform tends to use single-hyphen switches, we are using double-hyphen which is more conventional
+
 # Call early in apply scripts to capture optional CLI params
 parse_apply_opts() {
   tf_targets=()
