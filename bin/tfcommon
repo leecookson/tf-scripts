@@ -213,6 +213,41 @@ loadjobvars() {
   LAMBDA_REPOS=${LAMBDA_REPOS:-""}
 }
 
+# _copyworkfiles
+#     copies tf/tfvars/tpl files into the work folder; called on every run.
+#     must be called from within the $folder directory (not work/).
+_copyworkfiles() {
+  # Find directories directly under the current path (.), at depth 1.
+  # -type d: only directories.
+  # ! -name '*.*': directory name does not contain a dot. This excludes hidden folders (e.g. .git) and folders with dots (e.g. my.folder).
+  # ! -name 'work': exclude the 'work' directory itself.
+  # -print: prints the found path.
+  # Errors (e.g., permission denied) are suppressed.
+  local found_folders
+  found_folders=$(find . -maxdepth 1 -type d ! -name '*.*' ! -name 'work' ! -name 'envs' -print 2>/dev/null)
+
+  [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
+  for folder_path in $found_folders; do
+    local dir_name
+    dir_name=$(basename "$folder_path")
+    if [[ -n "$dir_name" ]]; then
+      echo "Symlinking ../$dir_name to work/$dir_name"
+      ln -sfn "../$dir_name" "work/$dir_name"
+    fi
+  done
+
+  [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work 2>/dev/null
+
+  # include *.tpl for terraform "template" local files
+  cp *.tf *.tpl terraform.tfvars work 2>/dev/null
+
+  # carry the lock file in so init doesn't re-resolve providers from scratch
+  [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl work/
+
+  # If var env is not empty, copy from that folder also
+  [[ "$env" != "" ]] && [[ -d "envs/$env" ]] && cp envs/${env}/*.tf envs/${env}/terraform.tfvars work 2>/dev/null
+}
+
 # setupworkfolder <folder>
 #     currend directory has to be main project root
 setupworkfolder() {
@@ -224,12 +259,8 @@ setupworkfolder() {
   fi
 
   echo "Setting up $folder"
-  if [[ ! -d "$folder/work" ]]; then
-    echo "Creating work folder for $folder"
-    mkdir -p "$folder/work"
-  else
-    echo " ********> Work folder already exists for $folder"
-  fi
+  mkdir -p "$folder/work"
+
   # TODO: make this circle-ci agnostic
   local project_name=${CIRCLE_PROJECT_REPONAME:-$(basename $PWD)}
 
@@ -240,44 +271,8 @@ setupworkfolder() {
 
   setupbackend "$project_name" || { echo "Backend Setup Failed"; return 1; }
 
-  # Find directories directly under the current path (.), at depth 1.
-  # -type d: only directories.
-  # ! -name '*.*': directory name does not contain a dot. This excludes hidden folders (e.g. .git) and folders with dots (e.g. my.folder).
-  # ! -name 'work': exclude the 'work' directory itself.
-  # -print: prints the found path.
-  # Errors (e.g., permission denied) are suppressed.
-  local found_folders
-  found_folders=$(find . -maxdepth 1 -type d ! -name '*.*' ! -name 'work' ! -name 'envs' -print 2>/dev/null)
+  _copyworkfiles
 
-  [[ ! -z "$found_folders" ]] && echo "Folders to symlink into 'work': $found_folders"
-  # symlink any non-dot folders to work, mainly for static or auxilliary files
-  for folder_path in $found_folders; do
-    local dir_name
-    dir_name=$(basename "$folder_path") # Extracts 'gcp' from './gcp'
-
-    if [[ -n "$dir_name" ]]; then # Ensure dir_name is not empty
-      echo "Symlinking ../$dir_name to work/$dir_name"
-      # Create a relative symlink inside the 'work' directory.
-      # ln -sfn TARGET LINK_NAME
-      # TARGET is ../$dir_name (relative to the 'work' directory)
-      # LINK_NAME is work/$dir_name
-      # -f: force (overwrite if exists)
-      # -n: no-dereference (if work/$dir_name is a symlink to a dir, replace the symlink itself)
-      ln -sfn "../$dir_name" "work/$dir_name"
-    fi
-  done
-
-  [[ -n "$INCLUDE_ZIPS" ]] && cp *.zip work 2>/dev/null
-
-  # inlcude *.tpl for terraform "template" local files
-  cp *.tf *.tpl terraform.tfvars work 2>/dev/null
-
-  # carry the lock file in so init doesn't re-resolve providers from scratch
-  [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl work/
-
-  # If var env is not empty, copy from that folder also
-  [[ "$env" != "" ]] && [[ -d "envs/$env" ]] && cp envs/${env}/*.tf envs/${env}/terraform.tfvars work 2>/dev/null
-  
   cd work
 
   installlambdas
@@ -291,7 +286,8 @@ setupworkfolder() {
 }
 
 # setupworkfolder_cached <folder>
-# Reuses existing work folder when _backend.tf is recent; otherwise runs full setup + init.
+# Always refreshes tf/tfvars files. Skips full reinit when the work folder is
+# recent and was initialised for the same env.
 # Override the freshness window with WORK_FOLDER_TTL_MINUTES (default: 60).
 setupworkfolder_cached() {
   local folder="$1"
@@ -305,6 +301,7 @@ setupworkfolder_cached() {
     echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old, env=${env})"
     cd "$folder"
     loadjobvars
+    _copyworkfiles
     cd work
     getcreds
   else
