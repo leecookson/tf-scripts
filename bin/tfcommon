@@ -297,7 +297,9 @@ setupworkfolder_cached() {
 
   if find "$backend_config" -mmin -"$work_ttl_minutes" 2>/dev/null | grep -q .; then
     echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old)"
-    cd "$folder/work"
+    cd "$folder"
+    loadjobvars
+    cd work
     getcreds
   else
     setupworkfolder "$folder" || return 1
