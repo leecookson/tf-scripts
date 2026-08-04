@@ -3,14 +3,17 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
+parse_apply_opts "$@"
+
 echo "Current working directory: $(pwd)"
 # echo "Files in current directory: $(ls -la)"
 echo "Detected folder ${folder}, env ${env}"
 
 usage() {
-  echo "Usage: $0 [folder|folder/env]"
+  echo "Usage: $0 [folder|folder/env] [--target <resource>] ..."
   echo "Example: $0 aws"
   echo "Example: $0 aws/dev"
+  echo "Example: $0 aws/dev --target aws_s3_bucket.example --target aws_iam_role.example"
   exit 1
 }
 
@@ -26,7 +29,7 @@ setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; 
 
 terraform fmt -check -v
 
-terraform plan -input=false -out plan.tfplan
+terraform plan -input=false $(target_args) -out plan.tfplan
 plan_exit=$?
 
 target="${folder}${env:+/$env}"
