@@ -29,8 +29,8 @@ setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; 
 
 terraform fmt -check -v
 
-terraform plan -input=false $(target_args) -out plan.tfplan
-plan_exit=$?
+terraform plan -input=false $(target_args) -out plan.tfplan | tee >(sed $'s/\033\[[0-9;]*m//g' > plan.txt)
+plan_exit=${PIPESTATUS[0]}
 
 target="${folder}${env:+/$env}"
 if [[ $plan_exit -eq 0 ]]; then
