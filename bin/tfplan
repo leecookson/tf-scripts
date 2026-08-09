@@ -35,7 +35,9 @@ plan_exit=${PIPESTATUS[0]}
 target="${folder}${env:+/$env}"
 if [[ $plan_exit -eq 0 ]]; then
   echo -e "\e[34mPlan for ${target} complete SUCCESS\e[0m"
+  echo "PLAN RESULT: ${target} SUCCESS" >> plan.txt
 else
   echo -e "\e[31mPlan for ${target} FAILED\e[0m"
+  echo "PLAN RESULT: ${target} FAILED (exit code ${plan_exit})" >> plan.txt
 fi
 exit $plan_exit
