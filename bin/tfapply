@@ -21,16 +21,18 @@ is_tf_folder "$folder" || exit 1
 
 setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
-terraform plan -input=false $(target_args) -out plan.tfplan
-echo "TARGET_ARGS $target_args"
+terraform plan -input=false $(target_args) -out plan.tfplan | tee >(sed $'s/\033\[[0-9;]*m//g' > plan.txt)
+plan_exit=${PIPESTATUS[0]}
 
-terraform apply -input=false $(target_args) "plan.tfplan"
-apply_exit=$?
+terraform apply -input=false $(target_args) "plan.tfplan" | tee >(sed $'s/\033\[[0-9;]*m//g' > apply.txt)
+apply_exit=${PIPESTATUS[0]}
 
 target="${folder}${env:+/$env}"
 if [[ $apply_exit -eq 0 ]]; then
   echo -e "\e[34mApply for ${target} complete SUCCESS\e[0m"
+  echo "APPLY RESULT: ${target} SUCCESS" >> apply.txt
 else
   echo -e "\e[31mApply for ${target} FAILED\e[0m"
+  echo "APPLY RESULT: ${target} FAILED (exit code ${apply_exit})" >> apply.txt
 fi
 exit $apply_exit
