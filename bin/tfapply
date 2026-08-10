@@ -28,11 +28,12 @@ terraform apply -input=false $(target_args) "plan.tfplan" | tee >(sed $'s/\033\[
 apply_exit=${PIPESTATUS[0]}
 
 target="${folder}${env:+/$env}"
+ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 if [[ $apply_exit -eq 0 ]]; then
-  echo -e "\e[34mApply for ${target} complete SUCCESS\e[0m"
-  echo "APPLY RESULT: ${target} SUCCESS" >> apply.txt
+  echo -e "\e[34mApply for ${target} complete SUCCESS at ${ts}\e[0m"
+  echo "APPLY RESULT: ${target} SUCCESS at ${ts}" >> apply.txt
 else
-  echo -e "\e[31mApply for ${target} FAILED\e[0m"
-  echo "APPLY RESULT: ${target} FAILED (exit code ${apply_exit})" >> apply.txt
+  echo -e "\e[31mApply for ${target} FAILED at ${ts}\e[0m"
+  echo "APPLY RESULT: ${target} FAILED (exit code ${apply_exit}) at ${ts}" >> apply.txt
 fi
 exit $apply_exit
