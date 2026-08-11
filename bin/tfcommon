@@ -304,6 +304,8 @@ setupworkfolder_cached() {
     _copyworkfiles
     cd work
     getcreds
+    # lightweight init: validates backend and migrates state if needed, skips provider downloads
+    terraform init -upgrade=false
   else
     setupworkfolder "$folder" || return 1
     terraform init
