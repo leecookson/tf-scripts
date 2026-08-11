@@ -302,9 +302,9 @@ setupworkfolder_cached() {
     cd "$folder"
     loadjobvars
 
-    # Remove all user-authored files from work/ so deleted .tf files don't linger.
+    # Remove user-authored files from work/ so deleted .tf files don't linger.
     # Preserves .terraform/ (provider cache) and generated files (_backend.tf, .env_name).
-    rm -f work/*.tf work/*.tfvars work/*.tpl 2>/dev/null
+    find work/ -maxdepth 1 -type f \( -name "*.tf" -o -name "*.tfvars" -o -name "*.tpl" \) ! -name "_backend.tf" -delete 2>/dev/null
 
     # Detect lock file change before _copyworkfiles overwrites work copy.
     local src_lock=".terraform.lock.hcl"
