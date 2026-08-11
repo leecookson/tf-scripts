@@ -322,12 +322,11 @@ setupworkfolder_cached() {
       terraform init
       [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl "../.terraform.lock.hcl"
     else
-      echo "Lock file unchanged — skipping terraform init"
+      # lightweight init: validates backend and migrates state if needed, skips provider downloads
+      terraform init -upgrade=false
     fi
 
     getcreds
-    # lightweight init: validates backend and migrates state if needed, skips provider downloads
-    terraform init -upgrade=false
   else
     setupworkfolder "$folder" || return 1
     terraform init
