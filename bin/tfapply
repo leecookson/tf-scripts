@@ -5,7 +5,6 @@
 
 parse_apply_opts "$@"
 
-is_tf_folder $folder || usage
 usage() {
   echo "Usage: $0 [folder|folder/env]"
   echo "Example: $0 aws"
