@@ -286,8 +286,8 @@ setupworkfolder() {
 }
 
 # setupworkfolder_cached <folder>
-# Always refreshes tf/tfvars files. Skips full reinit when the work folder is
-# recent and was initialised for the same env.
+# Always refreshes tf/tfvars files. Skips terraform init when the work folder is
+# recent, was initialised for the same env, and the lock file is unchanged.
 # Override the freshness window with WORK_FOLDER_TTL_MINUTES (default: 60).
 setupworkfolder_cached() {
   local folder="$1"
@@ -301,8 +301,30 @@ setupworkfolder_cached() {
     echo "Reusing existing work folder (backend config is less than ${work_ttl_minutes} minutes old, env=${env})"
     cd "$folder"
     loadjobvars
+
+    # Remove all user-authored files from work/ so deleted .tf files don't linger.
+    # Preserves .terraform/ (provider cache) and generated files (_backend.tf, .env_name).
+    rm -f work/*.tf work/*.tfvars work/*.tpl 2>/dev/null
+
+    # Detect lock file change before _copyworkfiles overwrites work copy.
+    local src_lock=".terraform.lock.hcl"
+    local work_lock="work/.terraform.lock.hcl"
+    local lock_changed=false
+    if [[ -f "$src_lock" ]] && ! diff -q "$src_lock" "$work_lock" >/dev/null 2>&1; then
+      lock_changed=true
+    fi
+
     _copyworkfiles
     cd work
+
+    if [[ "$lock_changed" == true ]]; then
+      echo "Lock file changed — running terraform init to update providers"
+      terraform init
+      [[ -f ".terraform.lock.hcl" ]] && cp .terraform.lock.hcl "../.terraform.lock.hcl"
+    else
+      echo "Lock file unchanged — skipping terraform init"
+    fi
+
     getcreds
     # lightweight init: validates backend and migrates state if needed, skips provider downloads
     terraform init -upgrade=false
