@@ -302,6 +302,9 @@ setupworkfolder_cached() {
     cd "$folder"
     loadjobvars
 
+    # Verify credentials before touching terraform — fail fast before any init or plan.
+    _isbackendloggedin || { echo -e "⚠️  \e[33mNot logged in to AWS — cannot access S3 backend. Authenticate profile \e[34m${TERRAFORM_AWS_BACKEND_PROFILE}\e[33m and retry.\e[0m"; exit 1; }
+
     # Remove user-authored files from work/ so deleted .tf files don't linger.
     # Preserves .terraform/ (provider cache) and generated files (_backend.tf, .env_name).
     find work/ -maxdepth 1 -type f \( -name "*.tf" -o -name "*.tfvars" -o -name "*.tpl" \) ! -name "_backend.tf" -delete 2>/dev/null
@@ -317,6 +320,8 @@ setupworkfolder_cached() {
     _copyworkfiles
     cd work
 
+    getcreds
+
     if [[ "$lock_changed" == true ]]; then
       echo "Lock file changed — running terraform init to update providers"
       terraform init
@@ -325,8 +330,6 @@ setupworkfolder_cached() {
       # lightweight init: validates backend and migrates state if needed, skips provider downloads
       terraform init -upgrade=false
     fi
-
-    getcreds
   else
     setupworkfolder "$folder" || return 1
     terraform init
