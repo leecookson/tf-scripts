@@ -3,9 +3,6 @@
 # source tfcommon from same bin folder
 . "$(dirname $(realpath $0))/tfcommon"
 
-echo "Current working directory: $(pwd)"
-echo "Detected folder ${folder}, env ${env}"
-
 usage() {
   echo "Usage: $0 [folder|folder/env]"
   echo "Example: $0 aws"
@@ -17,13 +14,9 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   usage
 fi
 
-echo "tf output $folder"
-
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
-
-terraform init
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform output
 output_exit=$?

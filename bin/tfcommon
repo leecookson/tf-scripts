@@ -16,7 +16,8 @@ else
   export env=""
 fi
 
-echo "Startup, detected: folder ${folder}, env ${env}"
+action=$(basename "$0" | sed 's/^tf//')
+echo "Startup [${action}]: folder ${folder}, env ${env}"
 
 # check existence of terraform binary
 if ! type terraform >/dev/null 2>&1; then
