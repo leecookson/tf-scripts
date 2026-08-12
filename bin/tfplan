@@ -10,10 +10,18 @@ echo "Current working directory: $(pwd)"
 echo "Detected folder ${folder}, env ${env}"
 
 usage() {
-  echo "Usage: $0 [folder|folder/env] [--target <resource>] ..."
-  echo "Example: $0 aws"
-  echo "Example: $0 aws/dev"
-  echo "Example: $0 aws/dev --target aws_s3_bucket.example --target aws_iam_role.example"
+  echo "Usage: $0 <folder[/env]> [--target <resource>] ... [--reconfigure]"
+  echo ""
+  echo "  folder[/env]        Path to Terraform config folder, optionally with env (e.g. aws/prod)"
+  echo "  --target <resource> Limit plan to specific resource or module. Repeatable."
+  echo "  --reconfigure       Pass -reconfigure to terraform init instead of -migrate-state"
+  echo ""
+  echo "Output: saves ANSI-stripped plan output to work/plan.txt"
+  echo ""
+  echo "Examples:"
+  echo "  $0 aws"
+  echo "  $0 azure/staging"
+  echo "  $0 aws --target aws_s3_bucket.assets --target aws_iam_role.lambda"
   exit 1
 }
 

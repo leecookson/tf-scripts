@@ -98,6 +98,27 @@ tfimport azure/prod azurerm_resource_group.main /subscriptions/00000000/resource
 
 ---
 
+## tfoutput
+
+Read all output values from the current Terraform state.
+
+```
+tfoutput <folder[/env]>
+```
+
+| Argument | Required | Description |
+|---|---|---|
+| `folder[/env]` | yes | Path to the Terraform config folder, optionally including an env subfolder |
+
+**Examples**
+
+```sh
+tfoutput aws
+tfoutput azure/prod
+```
+
+---
+
 ## tfstate
 
 Inspect and manipulate Terraform state.

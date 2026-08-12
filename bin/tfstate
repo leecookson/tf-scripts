@@ -11,14 +11,18 @@ resource_target_address=${4} # to support "mv" command
 # echo "$folder $state_cmd $resource_address $resource_target_address"
 
 usage() {
-  echo "Usage: $0 [folder|folder/env] <state_cmd> [<resource_address>] [<resource_target_address>]"
-  echo "  folder: path to the Terraform configuration folder (default: current directory)"
-  echo "  state_cmd: command to run on the Terraform state (e.g., list, show, mv)"
-  echo "  resource_address: address of the resource in the state (required for show, rm, mv commands)"
-  echo "  resource_target_address: target address for mv command (required for mv command)"
-  echo "Example: $0 aws list"
-  echo "Example: $0 aws show aws_instance.example"
-  echo "Example: $0 azure mv aws_instance.example aws_instance.new_example"
+  echo "Usage: $0 <folder[/env]> <state_cmd> [<resource_address>] [<target_address>]"
+  echo ""
+  echo "  folder[/env]       Path to Terraform config folder, optionally with env (e.g. aws/prod)"
+  echo "  state_cmd          State sub-command: list | show | rm | mv"
+  echo "  resource_address   Resource address — required for show, rm, mv"
+  echo "  target_address     Destination address — required for mv only"
+  echo ""
+  echo "Examples:"
+  echo "  $0 aws list"
+  echo "  $0 aws show aws_instance.web"
+  echo "  $0 azure/prod rm aws_instance.old"
+  echo "  $0 gcp mv google_storage_bucket.old google_storage_bucket.new"
   exit 1
 }
 
@@ -34,9 +38,7 @@ fi
 
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
-
-terraform init -migrate-state -upgrade
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 # this is dynamic based on the state_cmd, so we catenate and execute the result
 cmd="terraform state $state_cmd $resource_address $resource_target_address"

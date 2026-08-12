@@ -4,23 +4,24 @@
 . "$(dirname $(realpath $0))/tfcommon"
 
 usage() {
-	echo "Usage: $0 [folder|folder/env]"
-	echo "Example: $0 aws"
-	echo "Example: $0 aws/dev"
-	exit 1
+  echo "Usage: $0 <folder[/env]> [--reconfigure]"
+  echo ""
+  echo "  folder[/env]   Path to Terraform config folder, optionally with env (e.g. aws/prod)"
+  echo "  --reconfigure  Pass -reconfigure to terraform init instead of -migrate-state"
+  echo ""
+  echo "Examples:"
+  echo "  $0 aws"
+  echo "  $0 azure/staging"
+  exit 1
 }
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-	usage
+  usage
 fi
 
 is_tf_folder "$folder" || exit 1
 
-setupworkfolder $folder || { echo "Failed to setup work folder $folder"; exit 1; }
-
-terraform init -migrate-state -upgrade
-
-# since there should be no code when a lambda is being destroyed, we can skip the build step
+setupworkfolder_cached $folder || { echo "Failed to setup work folder $folder"; exit 1; }
 
 terraform plan -input=false -destroy -out plan.tfplan
 

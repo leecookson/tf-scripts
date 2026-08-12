@@ -6,9 +6,18 @@
 parse_apply_opts "$@"
 
 usage() {
-  echo "Usage: $0 [folder|folder/env]"
-  echo "Example: $0 aws"
-  echo "Example: $0 aws/dev"
+  echo "Usage: $0 <folder[/env]> [--target <resource>] ... [--reconfigure]"
+  echo ""
+  echo "  folder[/env]        Path to Terraform config folder, optionally with env (e.g. aws/prod)"
+  echo "  --target <resource> Limit plan/apply to specific resource or module. Repeatable."
+  echo "  --reconfigure       Pass -reconfigure to terraform init instead of -migrate-state"
+  echo ""
+  echo "Output: saves ANSI-stripped plan to work/plan.txt, apply to work/apply.txt"
+  echo ""
+  echo "Examples:"
+  echo "  $0 aws"
+  echo "  $0 azure/prod"
+  echo "  $0 aws --target aws_s3_bucket.assets --target aws_iam_role.lambda"
   exit 1
 }
 
