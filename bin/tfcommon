@@ -98,7 +98,7 @@ setupbackend() {
   key_path=${folder}
   [[ "$env" != "" ]] && key_path="$folder/$env"
 
-  _isbackendloggedin || { echo "Not logged in to AWS, cannot set up S3 backend $?"; exit 1; }
+  _isbackendloggedin || { echo -e "⚠️  \e[33mNot logged in to AWS — cannot set up S3 backend. Authenticate profile \e[34m${TERRAFORM_AWS_BACKEND_PROFILE}\e[33m and retry.\e[0m"; exit 1; }
   # echo ==============
   # echo "$TERRAFORM_AWS_BACKEND_PROFILE"
   # echo "$TERRAFORM_BACKEND_BUCKET"
@@ -360,7 +360,7 @@ getawscreds() {
   echo "Detected AWS provider"
   
   # Check for access via AWS_DEPLOY_PROFILE, use oidc to log in for AWS deploy access
-  _isawsloggedin || { echo "Not logged in to AWS, cannot deploy. Log into ${AWS_DEPLOY_PROFILE} to obtain credentials"; exit 1; }
+  _isawsloggedin || { echo -e "⚠️  \e[33mNot logged in to AWS — cannot deploy. Authenticate profile \e[34m${AWS_DEPLOY_PROFILE}\e[33m and retry.\e[0m"; exit 1; }
 
   # NOTE: locally and on circleci, backend uses TERRAFORM_AWS_BACKEND_PROFILE explicitly, and terraform plan/apply uses AWS_DEPLOY_PROFILE explicitly
   echo "Using AWS profile ${AWS_DEPLOY_PROFILE} to deploy"
