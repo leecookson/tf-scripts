@@ -167,22 +167,25 @@ detectpoetrybuild() {
 installlambdas() {
   # Clone lambda repositories if LAMBDA_REPOS is set
   # "npm run build_lambda" must produce a lambda.zip in the repo's folder
+  # Lambda repos are project code, not fixtures: always start from a fresh clone so the
+  # latest commits are built, even when the rest of the work folder is reused.
   if [[ -n "$LAMBDA_REPOS" ]]; then
     echo "Cloning and building lambda repos"
     # Split LAMBDA_REPOS by comma and iterate over each repo
     IFS=',' read -ra repos <<<"$LAMBDA_REPOS"
     for repo in "${repos[@]}"; do
-      echo "Cloning lambda repo: $repo"
-      git clone "$repo"
-      # run npm instal and build for each repo
       repo_name=$(basename "$repo" .git)
+      rm -rf "$repo_name"
+      echo "Cloning lambda repo: $repo"
+      git clone "$repo" || { echo "Lambda clone failed for $repo"; return 1; }
+      # run npm install and build for each repo
       if [[ -d "$repo_name" ]]; then
         pushd "$repo_name"
-        if [[ detectnpmbuild -eq 0 ]]; then
+        if detectnpmbuild; then
           echo "Detected npm project in $repo_name, running npm install and build"
-          npm install && npm run build_lambda
+          npm install && npm run build_lambda || { echo "Lambda build failed for $repo_name"; popd; return 1; }
         else
-          echo "Skipping lambda install"
+          echo "Skipping lambda install for $repo_name (no build_lambda script)"
         fi
         popd # go back to the work folder
       fi
@@ -276,7 +279,7 @@ setupworkfolder() {
 
   cd work
 
-  installlambdas
+  installlambdas || return 1
 
   getcreds
 
@@ -320,6 +323,9 @@ setupworkfolder_cached() {
 
     _copyworkfiles
     cd work
+
+    # Only terraform fixtures (providers, modules) are reused; lambda repos are always rebuilt
+    installlambdas || return 1
 
     getcreds
 
